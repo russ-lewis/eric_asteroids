@@ -8,7 +8,7 @@ import threading
 
 
 
-def recv_main(recv_sock):
+def recv_parser(recv_sock):
     # this is used to hold data which has been read from the socket, but not
     # interpteted into packet yet.
     pending = b""
@@ -26,7 +26,7 @@ def recv_main(recv_sock):
             if len_len == len(pending):
                 more = recv_sock.recv(1024)
                 if len(more) == 0:
-                    return
+                    return            # terminates the generator
                 pending += more
             len_len += 1
 
@@ -38,13 +38,20 @@ def recv_main(recv_sock):
         while len(pending) < len_int:
             more = recv(len_int-len(pending))
             if len(more) == 0:
-                return
+                return            # terminates the generator
             pending += more
             assert len(pending) <= len_int
 
-        msg     = pending[:len_int ].decode()
+        msg     = pending[:len_int ]
         pending = pending[ len_int:]
 
+        yield msg      # NOTE: yields a bytes object, since it might be binary data
+
+
+
+def recv_main(recv_sock):
+    for packet in recv_parser(recv_sock):
+        msg = packet.decode()
         print(f"MESSAGE RECEIVED: {msg}")
         
 
